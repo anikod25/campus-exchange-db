@@ -4,10 +4,50 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Campus Exchange</title>
+    <!-- Add Google Fonts: Playfair Display for headings & DM Sans for body -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <h1 class="logo">Campus Exchange</h1>
+            <nav class="nav-menu">
+                <a href="#dashboard" class="nav-link active" data-target="dashboard">Dashboard</a>
+                <a href="#resources" class="nav-link" data-target="resources">Resources</a>
+                <a href="#add-resource" class="nav-link" data-target="add-resource">Add Resource</a>
+                <a href="#transactions" class="nav-link" data-target="transactions">Transactions</a>
+                <a href="#waitlist" class="nav-link" data-target="waitlist">Waitlist</a>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <section id="dashboard" class="page-section">
+                <h2>Dashboard</h2>
+            </section>
+            
+            <section id="resources" class="page-section hidden">
+                <h2>Resources</h2>
+            </section>
+            
+            <section id="add-resource" class="page-section hidden">
+                <h2>Add Resource</h2>
+            </section>
+            
+            <section id="transactions" class="page-section hidden">
+                <h2>Transactions</h2>
+            </section>
+            
+            <section id="waitlist" class="page-section hidden">
+                <h2>Waitlist</h2>
+            </section>
+        </main>
+    </div>
+
     <script src="mock-data.js"></script>
     <script src="app.js"></script>
 </body>
