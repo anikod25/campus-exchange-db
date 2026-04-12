@@ -49,6 +49,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 loadAddResource();
             } else if (targetId === 'transactions') {
                 loadTransactions();
+            } else if (targetId === 'waitlist') {
+                loadWaitlist();
             }
         });
     });
@@ -74,6 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (hash === 'resources') loadResources();
             if (hash === 'add-resource') loadAddResource();
             if (hash === 'transactions') loadTransactions();
+            if (hash === 'waitlist') loadWaitlist();
         } else {
             navigateTo('dashboard');
         }
@@ -282,6 +285,56 @@ document.addEventListener('DOMContentLoaded', () => {
     // Call conditionally on initial load if starting on transactions
     if (initialHash === 'transactions') {
         loadTransactions();
+    }
+
+    // --- Waitlist Tab Logic ---
+    const waitlistTbody = document.getElementById('waitlist-tbody');
+
+    function loadWaitlist() {
+        if (!waitlistTbody) return;
+
+        waitlistTbody.innerHTML = ''; // clear current rows
+
+        if (MOCK_WAITLIST.length === 0) {
+            waitlistTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 2rem; color: var(--text-muted);">No waitlist entries found.</td></tr>';
+            return;
+        }
+
+        // Sort by priority ascending (1 is highest)
+        const sortedWaitlist = [...MOCK_WAITLIST].sort((a, b) => a.priority - b.priority);
+
+        sortedWaitlist.forEach(entry => {
+            const tr = document.createElement('tr');
+            
+            // Subtle highlight for priority 1 (light yellow/green background)
+            if (entry.priority === 1) {
+                tr.style.backgroundColor = 'rgba(250, 204, 21, 0.15)'; 
+            }
+
+            const actionHtml = `<button class="btn btn-outline btn-remove-waitlist" data-id="${entry.waitlist_id}">Remove</button>`;
+
+            tr.innerHTML = `
+                <td><strong>${entry.priority}</strong></td>
+                <td>${entry.resource_title}</td>
+                <td>${entry.student_name}</td>
+                <td>${entry.reg_date}</td>
+                <td>${actionHtml}</td>
+            `;
+            waitlistTbody.appendChild(tr);
+        });
+
+        // Attach action listeners
+        document.querySelectorAll('.btn-remove-waitlist').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = e.target.getAttribute('data-id');
+                console.log(`Remove clicked for waitlist_id: ${id}`);
+            });
+        });
+    }
+
+    // Call conditionally on initial load if starting on waitlist
+    if (initialHash === 'waitlist') {
+        loadWaitlist();
     }
 
 });
