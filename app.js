@@ -1,6 +1,15 @@
 const API_BASE = "http://localhost:5000";
 const USE_MOCK = true;
 
+function showToast(message, type = "success") {
+    const container = document.getElementById("toast-container");
+    const toast = document.createElement("div");
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
 // App Logic - Navigation & Initialization
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -124,6 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 transData = await transRes.json();
             } catch (err) {
                 console.error(err);
+                showToast("Something went wrong.", "error");
                 statsData = { total_resources: 0, available: 0, borrowed: 0, total_students: 0 };
                 transData = [];
             }
@@ -159,21 +169,21 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             transData.forEach(tx => {
                 const status = getTxStatus(tx);
-                const badgeClass = status === 'active' ? 'badge-available' : \`badge-\${status}\`;
-                transRowsHtml += \`
+                const badgeClass = status === 'active' ? 'badge-available' : `badge-${status}`;
+                transRowsHtml += `
                     <tr>
-                        <td><strong>\${tx.resource_title}</strong></td>
-                        <td>\${tx.sender_name}</td>
-                        <td>\${tx.receiver_name}</td>
-                        <td>\${tx.issue_date}</td>
-                        <td>\${tx.due_date}</td>
-                        <td><span class="badge \${badgeClass}">\${status}</span></td>
+                        <td><strong>${tx.resource_title}</strong></td>
+                        <td>${tx.sender_name}</td>
+                        <td>${tx.receiver_name}</td>
+                        <td>${tx.issue_date}</td>
+                        <td>${tx.due_date}</td>
+                        <td><span class="badge ${badgeClass}">${status}</span></td>
                     </tr>
-                \`;
+                `;
             });
         }
 
-        const tableHtml = \`
+        const tableHtml = `
             <div>
                 <h3 style="margin-bottom: 1rem; font-family: 'Playfair Display', serif; font-weight: 600; color: var(--text-main);">Recent Transactions</h3>
                 <div class="table-container">
@@ -189,12 +199,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             </tr>
                         </thead>
                         <tbody>
-                            \${transRowsHtml}
+                            ${transRowsHtml}
                         </tbody>
                     </table>
                 </div>
             </div>
-        \`;
+        `;
 
         // 3. Render into #dashboard
         dashboardSection.innerHTML = statsHtml + tableHtml;
@@ -212,6 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 data = await response.json();
             } catch (err) {
                 console.error(err);
+                showToast("Something went wrong.", "error");
                 return;
             }
         }
@@ -265,7 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.addEventListener('click', async (e) => {
                 const res_id = e.target.getAttribute('data-id');
                 if (USE_MOCK) {
-                    console.log("Mock POST transaction", res_id);
+                    showToast("Borrow request submitted!");
                 } else {
                     try {
                         await fetch(`${API_BASE}/api/transactions`, {
@@ -275,6 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                     } catch (err) {
                         console.error(err);
+                        showToast("Something went wrong.", "error");
                     }
                 }
             });
@@ -284,7 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.addEventListener('click', async (e) => {
                 const res_id = e.target.getAttribute('data-id');
                 if (USE_MOCK) {
-                    console.log("Mock POST waitlist", res_id);
+                    showToast("Added to waitlist!");
                 } else {
                     try {
                         await fetch(`${API_BASE}/api/waitlist`, {
@@ -294,6 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                     } catch (err) {
                         console.error(err);
+                        showToast("Something went wrong.", "error");
                     }
                 }
             });
@@ -343,7 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             if (USE_MOCK) {
-                console.log("Mock POST resource", data);
+                showToast("Resource added successfully!");
             } else {
                 try {
                     await fetch(`${API_BASE}/api/resources`, {
@@ -353,6 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 } catch (err) {
                     console.error(err);
+                    showToast("Something went wrong.", "error");
                 }
             }
             
@@ -402,6 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 data = await response.json();
             } catch (err) {
                 console.error(err);
+                showToast("Something went wrong.", "error");
                 return;
             }
         }
@@ -445,7 +460,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.addEventListener('click', async (e) => {
                 const tran_id = e.target.getAttribute('data-id');
                 if (USE_MOCK) {
-                    console.log("Mock PATCH return", tran_id);
+                    showToast("Resource marked as returned!");
                 } else {
                     try {
                         await fetch(`${API_BASE}/api/transactions/${tran_id}/return`, {
@@ -453,6 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                     } catch (err) {
                         console.error(err);
+                        showToast("Something went wrong.", "error");
                     }
                 }
             });
@@ -479,6 +495,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 data = await response.json();
             } catch (err) {
                 console.error(err);
+                showToast("Something went wrong.", "error");
                 return;
             }
         }
@@ -518,7 +535,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.addEventListener('click', async (e) => {
                 const waitlist_id = e.target.getAttribute('data-id');
                 if (USE_MOCK) {
-                    console.log("Mock DELETE waitlist", waitlist_id);
+                    showToast("Removed from waitlist!");
                 } else {
                     try {
                         await fetch(`${API_BASE}/api/waitlist/${waitlist_id}`, {
@@ -526,6 +543,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                     } catch (err) {
                         console.error(err);
+                        showToast("Something went wrong.", "error");
                     }
                 }
             });
