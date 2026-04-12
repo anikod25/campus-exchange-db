@@ -85,6 +85,53 @@
             
             <section id="add-resource" class="page-section hidden">
                 <h2>Add Resource</h2>
+                <div class="card" style="max-width: 600px;">
+                    <form id="add-resource-form" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <label for="res-title" class="stat-label">Title *</label>
+                            <input type="text" id="res-title" required style="padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border); font-family: inherit;">
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <label for="res-author" class="stat-label">Author / Model</label>
+                            <input type="text" id="res-author" style="padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border); font-family: inherit;">
+                        </div>
+
+                        <div style="display: flex; gap: 1rem;">
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem; flex: 1;">
+                                <label for="res-category" class="stat-label">Category *</label>
+                                <select id="res-category" required style="padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border); font-family: inherit;">
+                                    <option value="">Select Category</option>
+                                    <option value="Textbook">Textbook</option>
+                                    <option value="Hardware">Hardware</option>
+                                    <option value="Equipment">Equipment</option>
+                                </select>
+                            </div>
+
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem; flex: 1;">
+                                <label for="res-condition" class="stat-label">Condition *</label>
+                                <select id="res-condition" required style="padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border); font-family: inherit;">
+                                    <option value="">Select Condition</option>
+                                    <option value="good">Good</option>
+                                    <option value="fair">Fair</option>
+                                    <option value="poor">Poor</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <label for="res-donor" class="stat-label">Donor *</label>
+                            <select id="res-donor" required style="padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border); font-family: inherit;">
+                                <option value="">Select Donor</option>
+                                <!-- Populated by JS -->
+                            </select>
+                        </div>
+
+                        <div style="margin-top: 1rem;">
+                            <button type="submit" id="res-submit-btn" class="btn btn-primary" disabled style="width: 100%; padding: 0.875rem; font-size: 1rem;">Add Resource</button>
+                        </div>
+                    </form>
+                </div>
             </section>
             
             <section id="transactions" class="page-section hidden">

@@ -45,6 +45,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (targetId === 'resources') {
                 loadResources();
+            } else if (targetId === 'add-resource') {
+                loadAddResource();
             }
         });
     });
@@ -68,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (hash) {
             navigateTo(hash);
             if (hash === 'resources') loadResources();
+            if (hash === 'add-resource') loadAddResource();
         } else {
             navigateTo('dashboard');
         }
@@ -153,4 +156,69 @@ document.addEventListener('DOMContentLoaded', () => {
     if (initialHash === 'resources') {
         loadResources();
     }
+
+    // --- Add Resource Tab Logic ---
+    const addResourceForm = document.getElementById('add-resource-form');
+    const resTitle = document.getElementById('res-title');
+    const resAuthor = document.getElementById('res-author');
+    const resCategory = document.getElementById('res-category');
+    const resCondition = document.getElementById('res-condition');
+    const resDonor = document.getElementById('res-donor');
+    const resSubmitBtn = document.getElementById('res-submit-btn');
+
+    function checkAddResourceForm() {
+        if (!addResourceForm) return;
+        const isValid = resTitle.value.trim() !== '' && 
+                        resCategory.value !== '' && 
+                        resCondition.value !== '' && 
+                        resDonor.value !== '';
+        
+        resSubmitBtn.disabled = !isValid;
+    }
+
+    if (addResourceForm) {
+        // Attach listeners to check validity
+        resTitle.addEventListener('input', checkAddResourceForm);
+        resCategory.addEventListener('change', checkAddResourceForm);
+        resCondition.addEventListener('change', checkAddResourceForm);
+        resDonor.addEventListener('change', checkAddResourceForm);
+
+        addResourceForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const newReq = {
+                title: resTitle.value.trim(),
+                author_model: resAuthor.value.trim() || null,
+                category: resCategory.value,
+                item_condition: resCondition.value,
+                donor_id: parseInt(resDonor.value, 10)
+            };
+
+            console.log("Submitting resource: ", newReq);
+            
+            // Clear form
+            addResourceForm.reset();
+            checkAddResourceForm(); // Will re-disable the button
+        });
+    }
+
+    function loadAddResource() {
+        if (!resDonor) return;
+        
+        // Populate Donor dropdown if it only has the placeholder option
+        if (resDonor.options.length <= 1) {
+            MOCK_STUDENTS.forEach(student => {
+                const opt = document.createElement('option');
+                opt.value = student.std_id;
+                opt.textContent = student.name;
+                resDonor.appendChild(opt);
+            });
+        }
+    }
+
+    // Call conditionally on initial load if starting on add-resource
+    if (initialHash === 'add-resource') {
+        loadAddResource();
+    }
+
 });
