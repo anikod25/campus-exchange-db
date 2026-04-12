@@ -1,3 +1,6 @@
+const API_BASE = "http://localhost:5000";
+const USE_MOCK = true;
+
 // App Logic - Navigation & Initialization
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -43,7 +46,9 @@ document.addEventListener('DOMContentLoaded', () => {
             navigateTo(targetId);
             window.location.hash = targetId;
             
-            if (targetId === 'resources') {
+            if (targetId === 'dashboard') {
+                loadDashboard();
+            } else if (targetId === 'resources') {
                 loadResources();
             } else if (targetId === 'add-resource') {
                 loadAddResource();
@@ -60,8 +65,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const initialHash = window.location.hash.replace('#', '');
     if (initialHash && document.getElementById(initialHash)) {
         navigateTo(initialHash);
+        if (initialHash === 'dashboard') loadDashboard();
     } else {
         navigateTo('dashboard');
+        loadDashboard();
         // Clear empty hash to ensure consistent state
         if (!initialHash) {
              window.history.replaceState(null, null, ' ');
@@ -73,12 +80,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const hash = window.location.hash.replace('#', '');
         if (hash) {
             navigateTo(hash);
+            if (hash === 'dashboard') loadDashboard();
             if (hash === 'resources') loadResources();
             if (hash === 'add-resource') loadAddResource();
             if (hash === 'transactions') loadTransactions();
             if (hash === 'waitlist') loadWaitlist();
         } else {
             navigateTo('dashboard');
+            loadDashboard();
         }
     });
 
@@ -95,16 +104,125 @@ document.addEventListener('DOMContentLoaded', () => {
         filterCondition.addEventListener('change', loadResources);
     }
 
-    function loadResources() {
+    async function loadDashboard() {
+        const dashboardSection = document.getElementById('dashboard');
+        if (!dashboardSection) return;
+
+        let statsData = null;
+        let transData = [];
+
+        if (USE_MOCK) {
+            statsData = MOCK_STATS;
+            transData = MOCK_TRANSACTIONS.slice(0, 5);
+        } else {
+            try {
+                const [statsRes, transRes] = await Promise.all([
+                    fetch(`${API_BASE}/api/dashboard/stats`),
+                    fetch(`${API_BASE}/api/transactions?limit=5`)
+                ]);
+                statsData = await statsRes.json();
+                transData = await transRes.json();
+            } catch (err) {
+                console.error(err);
+                statsData = { total_resources: 0, available: 0, borrowed: 0, total_students: 0 };
+                transData = [];
+            }
+        }
+
+        // 1. Generate Stat Cards HTML
+        const statsHtml = `
+            <h2>Dashboard</h2>
+            <div class="stat-card-container">
+                <div class="stat-card">
+                    <span class="stat-label">Total Resources</span>
+                    <div class="stat-number">${statsData.total_resources || 0}</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Available</span>
+                    <div class="stat-number">${statsData.available || 0}</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Borrowed</span>
+                    <div class="stat-number">${statsData.borrowed || 0}</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Total Students</span>
+                    <div class="stat-number">${statsData.total_students || 0}</div>
+                </div>
+            </div>
+        `;
+
+        // 2. Generate Transactions Table HTML
+        let transRowsHtml = '';
+        if (transData.length === 0) {
+            transRowsHtml = '<tr><td colspan="6" style="text-align:center; padding: 2rem; color: var(--text-muted);">No recent transactions.</td></tr>';
+        } else {
+            transData.forEach(tx => {
+                const status = getTxStatus(tx);
+                const badgeClass = status === 'active' ? 'badge-available' : \`badge-\${status}\`;
+                transRowsHtml += \`
+                    <tr>
+                        <td><strong>\${tx.resource_title}</strong></td>
+                        <td>\${tx.sender_name}</td>
+                        <td>\${tx.receiver_name}</td>
+                        <td>\${tx.issue_date}</td>
+                        <td>\${tx.due_date}</td>
+                        <td><span class="badge \${badgeClass}">\${status}</span></td>
+                    </tr>
+                \`;
+            });
+        }
+
+        const tableHtml = \`
+            <div>
+                <h3 style="margin-bottom: 1rem; font-family: 'Playfair Display', serif; font-weight: 600; color: var(--text-main);">Recent Transactions</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Resource</th>
+                                <th>Sender</th>
+                                <th>Receiver</th>
+                                <th>Issue Date</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            \${transRowsHtml}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        \`;
+
+        // 3. Render into #dashboard
+        dashboardSection.innerHTML = statsHtml + tableHtml;
+    }
+
+    async function loadResources() {
         if (!resourcesTbody) return;
         
+        let data = [];
+        if (USE_MOCK) {
+            data = MOCK_RESOURCES;
+        } else {
+            try {
+                const response = await fetch(`${API_BASE}/api/resources`);
+                data = await response.json();
+            } catch (err) {
+                console.error(err);
+                return;
+            }
+        }
+
         // 1. Get filter values
         const catValue = filterCategory.value;
         const statValue = filterStatus.value;
         const condValue = filterCondition.value;
 
         // 2. Filter mock data
-        const filtered = MOCK_RESOURCES.filter(res => {
+        const filtered = data.filter(res => {
             const matchCategory = catValue === 'All' || res.category === catValue;
             const matchStatus = statValue === 'All' || res.curr_status === statValue;
             const matchCondition = condValue === 'All' || res.item_condition === condValue;
@@ -144,16 +262,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 4. Attach temporary action listeners
         document.querySelectorAll('.btn-borrow').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const id = e.target.getAttribute('data-id');
-                console.log(`Borrow clicked for res_id: ${id}`);
+            btn.addEventListener('click', async (e) => {
+                const res_id = e.target.getAttribute('data-id');
+                if (USE_MOCK) {
+                    console.log("Mock POST transaction", res_id);
+                } else {
+                    try {
+                        await fetch(`${API_BASE}/api/transactions`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ res_id, sender_id: 101, receiver_id: 102 })
+                        });
+                    } catch (err) {
+                        console.error(err);
+                    }
+                }
             });
         });
 
         document.querySelectorAll('.btn-waitlist').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const id = e.target.getAttribute('data-id');
-                console.log(`Waitlist clicked for res_id: ${id}`);
+            btn.addEventListener('click', async (e) => {
+                const res_id = e.target.getAttribute('data-id');
+                if (USE_MOCK) {
+                    console.log("Mock POST waitlist", res_id);
+                } else {
+                    try {
+                        await fetch(`${API_BASE}/api/waitlist`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ res_id, stud_id: 102 })
+                        });
+                    } catch (err) {
+                        console.error(err);
+                    }
+                }
             });
         });
     }
@@ -189,10 +331,10 @@ document.addEventListener('DOMContentLoaded', () => {
         resCondition.addEventListener('change', checkAddResourceForm);
         resDonor.addEventListener('change', checkAddResourceForm);
 
-        addResourceForm.addEventListener('submit', (e) => {
+        addResourceForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const newReq = {
+            const data = {
                 title: resTitle.value.trim(),
                 author_model: resAuthor.value.trim() || null,
                 category: resCategory.value,
@@ -200,7 +342,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 donor_id: parseInt(resDonor.value, 10)
             };
 
-            console.log("Submitting resource: ", newReq);
+            if (USE_MOCK) {
+                console.log("Mock POST resource", data);
+            } else {
+                try {
+                    await fetch(`${API_BASE}/api/resources`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(data)
+                    });
+                } catch (err) {
+                    console.error(err);
+                }
+            }
             
             // Clear form
             addResourceForm.reset();
@@ -236,17 +390,30 @@ document.addEventListener('DOMContentLoaded', () => {
         return "active";
     }
 
-    function loadTransactions() {
+    async function loadTransactions() {
         if (!transactionsTbody) return;
+
+        let data = [];
+        if (USE_MOCK) {
+            data = MOCK_TRANSACTIONS;
+        } else {
+            try {
+                const response = await fetch(`${API_BASE}/api/transactions`);
+                data = await response.json();
+            } catch (err) {
+                console.error(err);
+                return;
+            }
+        }
 
         transactionsTbody.innerHTML = ''; // clear current rows
 
-        if (MOCK_TRANSACTIONS.length === 0) {
+        if (data.length === 0) {
             transactionsTbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 2rem; color: var(--text-muted);">No transactions found.</td></tr>';
             return;
         }
 
-        MOCK_TRANSACTIONS.forEach(tx => {
+        data.forEach(tx => {
             const tr = document.createElement('tr');
             
             const status = getTxStatus(tx);
@@ -275,9 +442,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Attach action listeners
         document.querySelectorAll('.btn-return').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const id = e.target.getAttribute('data-id');
-                console.log(`Return clicked for tran_id: ${id}`);
+            btn.addEventListener('click', async (e) => {
+                const tran_id = e.target.getAttribute('data-id');
+                if (USE_MOCK) {
+                    console.log("Mock PATCH return", tran_id);
+                } else {
+                    try {
+                        await fetch(`${API_BASE}/api/transactions/${tran_id}/return`, {
+                            method: "PATCH"
+                        });
+                    } catch (err) {
+                        console.error(err);
+                    }
+                }
             });
         });
     }
@@ -290,18 +467,31 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Waitlist Tab Logic ---
     const waitlistTbody = document.getElementById('waitlist-tbody');
 
-    function loadWaitlist() {
+    async function loadWaitlist() {
         if (!waitlistTbody) return;
+
+        let data = [];
+        if (USE_MOCK) {
+            data = MOCK_WAITLIST;
+        } else {
+            try {
+                const response = await fetch(`${API_BASE}/api/waitlist`);
+                data = await response.json();
+            } catch (err) {
+                console.error(err);
+                return;
+            }
+        }
 
         waitlistTbody.innerHTML = ''; // clear current rows
 
-        if (MOCK_WAITLIST.length === 0) {
+        if (data.length === 0) {
             waitlistTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 2rem; color: var(--text-muted);">No waitlist entries found.</td></tr>';
             return;
         }
 
         // Sort by priority ascending (1 is highest)
-        const sortedWaitlist = [...MOCK_WAITLIST].sort((a, b) => a.priority - b.priority);
+        const sortedWaitlist = [...data].sort((a, b) => a.priority - b.priority);
 
         sortedWaitlist.forEach(entry => {
             const tr = document.createElement('tr');
@@ -325,9 +515,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Attach action listeners
         document.querySelectorAll('.btn-remove-waitlist').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const id = e.target.getAttribute('data-id');
-                console.log(`Remove clicked for waitlist_id: ${id}`);
+            btn.addEventListener('click', async (e) => {
+                const waitlist_id = e.target.getAttribute('data-id');
+                if (USE_MOCK) {
+                    console.log("Mock DELETE waitlist", waitlist_id);
+                } else {
+                    try {
+                        await fetch(`${API_BASE}/api/waitlist/${waitlist_id}`, {
+                            method: "DELETE"
+                        });
+                    } catch (err) {
+                        console.error(err);
+                    }
+                }
             });
         });
     }
