@@ -1,7 +1,4 @@
-/* Custom Styles for Campus Exchange */
-
 :root {
-    /* Color System */
     --primary: #0F6E56;
     --primary-light: #E1F5EE;
     --bg-page: #F9F7F2;
@@ -9,9 +6,18 @@
     --border: rgba(0,0,0,0.10);
     --text-main: #1A1A18;
     --text-muted: #6B6B65;
-    
-    /* Layout Variables */
-    --sidebar-width: 250px;
+
+    --status-available: #0F6E56;   --status-available-bg: #E1F5EE;
+    --status-borrowed: #BA7517;    --status-borrowed-bg: #FAEEDA;
+    --status-waitlisted: #993C1D;  --status-waitlisted-bg: #FAECE7;
+    --status-overdue: #A32D2D;     --status-overdue-bg: #FCEBEB;
+    --status-returned: #3B6D11;    --status-returned-bg: #EAF3DE;
+
+    --cond-good: #3B6D11;  --cond-good-bg: #EAF3DE;
+    --cond-fair: #BA7517;  --cond-fair-bg: #FAEEDA;
+    --cond-poor: #A32D2D;  --cond-poor-bg: #FCEBEB;
+
+    --sidebar-width: 220px;
 }
 
 * {
@@ -32,17 +38,13 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: 600;
 }
 
-p {
-    font-family: "DM Sans", sans-serif;
-}
-
-/* Base Layout */
+/* Page Layout */
 .app-container {
     display: flex;
     min-height: 100vh;
 }
 
-/* Sidebar Styles */
+/* Sidebar */
 .sidebar {
     width: var(--sidebar-width);
     background-color: var(--bg-card);
@@ -56,11 +58,12 @@ p {
 }
 
 .logo {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
     padding: 2rem 1.5rem;
     color: var(--primary);
     border-bottom: 1px solid var(--border);
     margin-bottom: 1rem;
+    font-weight: bold;
 }
 
 .nav-menu {
@@ -71,6 +74,7 @@ p {
 }
 
 .nav-link {
+    display: block;
     text-decoration: none;
     color: var(--text-muted);
     padding: 0.875rem 1rem;
@@ -82,32 +86,153 @@ p {
 
 .nav-link:hover {
     background-color: var(--primary-light);
-    color: var(--primary);
 }
 
 .nav-link.active {
     background-color: var(--primary-light);
     color: var(--primary);
-    font-weight: 600;
 }
 
-/* Main Content Styles */
+/* Main Content Area */
 .main-content {
     margin-left: var(--sidebar-width);
-    padding: 2.5rem;
+    padding: 2rem;
     flex: 1;
-    max-width: 1200px;
 }
 
-.page-section > h2 {
-    font-size: 2rem;
+/* Base Card Class */
+.card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+/* Stat Cards */
+.stat-card-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
     margin-bottom: 2rem;
+}
+
+.stat-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.5rem;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
     color: var(--text-main);
 }
 
-/* Utility Classes for View Toggling */
+/* Tables */
+.table-container {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+th, td {
+    padding: 10px;
+}
+
+th {
+    background-color: var(--bg-page);
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 0.875rem;
+    border-bottom: 1px solid var(--border);
+}
+
+td {
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+    color: var(--text-main);
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+/* Badges */
+.badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.badge-available { background-color: var(--status-available-bg); color: var(--status-available); }
+.badge-borrowed { background-color: var(--status-borrowed-bg); color: var(--status-borrowed); }
+.badge-waitlisted { background-color: var(--status-waitlisted-bg); color: var(--status-waitlisted); }
+.badge-overdue { background-color: var(--status-overdue-bg); color: var(--status-overdue); }
+.badge-returned { background-color: var(--status-returned-bg); color: var(--status-returned); }
+
+.badge-good { background-color: var(--cond-good-bg); color: var(--cond-good); }
+.badge-fair { background-color: var(--cond-fair-bg); color: var(--cond-fair); }
+.badge-poor { background-color: var(--cond-poor-bg); color: var(--cond-poor); }
+
+/* Buttons */
+.btn {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    border: none;
+    font-family: inherit;
+}
+
+.btn-primary {
+    background-color: var(--primary);
+    color: #ffffff;
+}
+
+.btn-primary:hover {
+    opacity: 0.9;
+}
+
+.btn-outline {
+    background-color: transparent;
+    color: var(--text-main);
+    border: 1px solid var(--border);
+}
+
+.btn-outline:hover {
+    background-color: var(--bg-page);
+}
+
+/* Utilities */
 .page-section {
     display: block;
+}
+
+.page-section > h2 {
+    font-size: 1.75rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-main);
 }
 
 .page-section.hidden {
