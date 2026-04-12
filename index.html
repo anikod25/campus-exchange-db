@@ -32,6 +32,55 @@
             
             <section id="resources" class="page-section hidden">
                 <h2>Resources</h2>
+                
+                <div class="card" style="display: flex; gap: 1.5rem; align-items: center; padding: 1rem 1.5rem;">
+                    <div>
+                        <label for="filter-category" class="stat-label">Category</label>
+                        <select id="filter-category" style="padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border); font-family: inherit;">
+                            <option value="All">All</option>
+                            <option value="Textbook">Textbook</option>
+                            <option value="Hardware">Hardware</option>
+                            <option value="Equipment">Equipment</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="filter-status" class="stat-label">Status</label>
+                        <select id="filter-status" style="padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border); font-family: inherit;">
+                            <option value="All">All</option>
+                            <option value="available">Available</option>
+                            <option value="borrowed">Borrowed</option>
+                            <option value="waitlisted">Waitlisted</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="filter-condition" class="stat-label">Condition</label>
+                        <select id="filter-condition" style="padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border); font-family: inherit;">
+                            <option value="All">All</option>
+                            <option value="good">Good</option>
+                            <option value="fair">Fair</option>
+                            <option value="poor">Poor</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Author/Model</th>
+                                <th>Category</th>
+                                <th>Condition</th>
+                                <th>Status</th>
+                                <th>Donor</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resources-tbody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
             </section>
             
             <section id="add-resource" class="page-section hidden">
