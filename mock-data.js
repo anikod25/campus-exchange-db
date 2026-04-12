@@ -5,6 +5,14 @@ const MOCK_STATS = {
   total_students: 4
 };
 
+const MOCK_DEPARTMENTS = [
+  { dept_id: 1, dept_name: "Computer Science & Engineering" },
+  { dept_id: 2, dept_name: "Electronics & Communication" },
+  { dept_id: 3, dept_name: "Mechanical Engineering" },
+  { dept_id: 4, dept_name: "Civil Engineering" }
+];
+
+
 const MOCK_TRANSACTIONS = [
   { tran_id: 401, res_id: 202, sender_id: 102, receiver_id: 103,
     issue_date: "2025-03-01", due_date: "2025-03-15", return_date: null,

@@ -83,6 +83,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 loadTransactions();
             } else if (targetId === 'waitlist') {
                 loadWaitlist();
+            } else if (targetId === 'students') {
+                loadStudents();
             }
         });
     });
@@ -112,6 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (hash === 'add-resource') loadAddResource();
             if (hash === 'transactions') loadTransactions();
             if (hash === 'waitlist') loadWaitlist();
+            if (hash === 'students') loadStudents();
         } else {
             navigateTo('dashboard');
             loadDashboard();
@@ -469,15 +472,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function loadAddResource() {
         if (!resDonor) return;
         
-        // Populate Donor dropdown if it only has the placeholder option
-        if (resDonor.options.length <= 1) {
-            MOCK_STUDENTS.forEach(student => {
-                const opt = document.createElement('option');
-                opt.value = student.std_id;
-                opt.textContent = student.name;
-                resDonor.appendChild(opt);
-            });
-        }
+        // Populate Donor dropdown by reading from the live MOCK_STUDENTS array
+        resDonor.innerHTML = '<option value="">Select Donor</option>';
+        MOCK_STUDENTS.forEach(student => {
+            const opt = document.createElement('option');
+            opt.value = student.std_id;
+            opt.textContent = student.name;
+            resDonor.appendChild(opt);
+        });
     }
 
     // Call conditionally on initial load if starting on add-resource
@@ -667,6 +669,198 @@ document.addEventListener('DOMContentLoaded', () => {
     // Call conditionally on initial load if starting on waitlist
     if (initialHash === 'waitlist') {
         loadWaitlist();
+    }
+
+    // --- Students Tab Logic ---
+    async function loadStudents() {
+        const studentsSection = document.getElementById('students');
+        if (!studentsSection) return;
+
+        let studentsData = [];
+        let deptsData = [];
+
+        if (USE_MOCK) {
+            studentsData = MOCK_STUDENTS;
+            deptsData = MOCK_DEPARTMENTS;
+        } else {
+            try {
+                const [studRes, deptRes] = await Promise.all([
+                    fetch(`${API_BASE}/api/students`),
+                    fetch(`${API_BASE}/api/departments`)
+                ]);
+                if (!studRes.ok || !deptRes.ok) {
+                    showToast("Something went wrong loading students.", "error");
+                    return;
+                }
+                studentsData = await studRes.json();
+                deptsData = await deptRes.json();
+            } catch (err) {
+                console.error(err);
+                showToast("Something went wrong. Please try again.", "error");
+                return;
+            }
+        }
+
+        // Build Dept Options
+        let deptOptionsHtml = '<option value="">Select Department</option>';
+        deptsData.forEach(dept => {
+            deptOptionsHtml += `<option value="${dept.dept_id}">${dept.dept_name}</option>`;
+        });
+
+        // Build form HTML
+        const formHtml = `
+            <h2>Students</h2>
+            <div class="card" style="max-width: 600px; margin-bottom: 2rem;">
+                <form id="add-student-form" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div style="display: flex; gap: 1rem;">
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem; flex: 1;">
+                            <label for="std-id" class="stat-label">Student ID *</label>
+                            <input type="number" id="std-id" required style="padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border); font-family: inherit;">
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem; flex: 2;">
+                            <label for="std-name" class="stat-label">Full Name *</label>
+                            <input type="text" id="std-name" required style="padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border); font-family: inherit;">
+                        </div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <label for="std-email" class="stat-label">Email *</label>
+                        <input type="email" id="std-email" required style="padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border); font-family: inherit;">
+                    </div>
+                    <div style="display: flex; gap: 1rem;">
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem; flex: 1;">
+                            <label for="std-year" class="stat-label">Year of Study *</label>
+                            <select id="std-year" required style="padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border); font-family: inherit;">
+                                <option value="">Select Year</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem; flex: 2;">
+                            <label for="std-dept" class="stat-label">Department *</label>
+                            <select id="std-dept" required style="padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border); font-family: inherit;">
+                                ${deptOptionsHtml}
+                            </select>
+                        </div>
+                    </div>
+                    <div style="margin-top: 1rem;">
+                        <button type="submit" id="std-submit-btn" class="btn btn-primary" disabled style="width: 100%; padding: 0.875rem; font-size: 1rem;">Add Student</button>
+                    </div>
+                </form>
+            </div>
+        `;
+
+        // Build Table HTML
+        let tableRowsHtml = '';
+        if (studentsData.length === 0) {
+            tableRowsHtml = '<tr><td colspan="5" style="text-align:center; padding: 2rem; color: var(--text-muted);">No students found.</td></tr>';
+        } else {
+            studentsData.forEach(std => {
+                const dept = deptsData.find(d => d.dept_id === std.dept_id);
+                const deptName = dept ? dept.dept_name : std.dept_name || '-';
+                tableRowsHtml += `
+                    <tr>
+                        <td>${std.std_id}</td>
+                        <td><strong>${std.name}</strong></td>
+                        <td>${std.mail_id}</td>
+                        <td>${std.year_of_study}</td>
+                        <td>${deptName}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        const tableHtml = `
+            <div>
+                <h3 style="margin-bottom: 1rem; font-family: 'Playfair Display', serif; font-weight: 600; color: var(--text-main);">Student List</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Year</th>
+                                <th>Department</th>
+                            </tr>
+                        </thead>
+                        <tbody id="students-tbody">
+                            ${tableRowsHtml}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+
+        studentsSection.innerHTML = formHtml + tableHtml;
+
+        // Attach listeners for the form
+        const addStudentForm = document.getElementById('add-student-form');
+        const stdId = document.getElementById('std-id');
+        const stdName = document.getElementById('std-name');
+        const stdEmail = document.getElementById('std-email');
+        const stdYear = document.getElementById('std-year');
+        const stdDept = document.getElementById('std-dept');
+        const stdSubmitBtn = document.getElementById('std-submit-btn');
+
+        function checkFormValidity() {
+            const isValid = stdId.value.trim() !== '' &&
+                            stdName.value.trim() !== '' &&
+                            stdEmail.value.trim() !== '' &&
+                            stdYear.value !== '' &&
+                            stdDept.value !== '';
+            stdSubmitBtn.disabled = !isValid;
+        }
+
+        stdId.addEventListener('input', checkFormValidity);
+        stdName.addEventListener('input', checkFormValidity);
+        stdEmail.addEventListener('input', checkFormValidity);
+        stdYear.addEventListener('change', checkFormValidity);
+        stdDept.addEventListener('change', checkFormValidity);
+
+        addStudentForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const data = {
+                std_id: parseInt(stdId.value, 10),
+                name: stdName.value.trim(),
+                mail_id: stdEmail.value.trim(),
+                year_of_study: parseInt(stdYear.value, 10),
+                dept_id: parseInt(stdDept.value, 10)
+            };
+
+            if (USE_MOCK) {
+                // Optionally add dept_name to data so it doesn't just read from dept list if missing
+                const d = MOCK_DEPARTMENTS.find(dept => dept.dept_id === data.dept_id);
+                if (d) data.dept_name = d.dept_name;
+
+                MOCK_STUDENTS.push(data);
+                showToast("Student added successfully!");
+                loadStudents(); // Re-render table and form
+            } else {
+                try {
+                    const response = await fetch(`${API_BASE}/api/students`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(data)
+                    });
+                    if (!response.ok) {
+                        await handleFetchError(response);
+                    } else {
+                        showToast("Student added successfully!");
+                        loadStudents(); // Re-render table and form
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showToast("Something went wrong. Please try again.", "error");
+                }
+            }
+        });
+    }
+
+    if (initialHash === 'students') {
+        loadStudents();
     }
 
 });
