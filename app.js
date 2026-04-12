@@ -10,6 +10,24 @@ function showToast(message, type = "success") {
     setTimeout(() => toast.remove(), 3000);
 }
 
+async function handleFetchError(response) {
+    try {
+        const err = await response.json();
+        const rawMsg = err.message || "";
+        const allowedMsgs = [
+            "Student has reached the maximum active borrow limit of 3.",
+            "Student is already on the waitlist for this resource.",
+            "A student cannot borrow a resource from themselves.",
+            "Resource is not available for borrowing.",
+            "This transaction has already been returned."
+        ];
+        const msg = allowedMsgs.includes(rawMsg) ? rawMsg : "Something went wrong. Please try again.";
+        showToast(msg, "error");
+    } catch (e) {
+        showToast("Something went wrong. Please try again.", "error");
+    }
+}
+
 // App Logic - Navigation & Initialization
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -119,23 +137,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let statsData = null;
         let transData = [];
+        let overdueData = [];
 
         if (USE_MOCK) {
             statsData = MOCK_STATS;
             transData = MOCK_TRANSACTIONS.slice(0, 5);
+            overdueData = MOCK_TRANSACTIONS.filter(tx => !tx.return_date && new Date(tx.due_date) < new Date());
         } else {
             try {
-                const [statsRes, transRes] = await Promise.all([
+                const [statsRes, transRes, overdueRes] = await Promise.all([
                     fetch(`${API_BASE}/api/dashboard/stats`),
-                    fetch(`${API_BASE}/api/transactions?limit=5`)
+                    fetch(`${API_BASE}/api/transactions?limit=5`),
+                    fetch(`${API_BASE}/api/transactions/overdue`)
                 ]);
-                statsData = await statsRes.json();
-                transData = await transRes.json();
+                if (!statsRes.ok || !transRes.ok || !overdueRes.ok) {
+                    showToast("Something went wrong. Please try again.", "error");
+                    statsData = { total_resources: 0, available: 0, borrowed: 0, total_students: 0 };
+                } else {
+                    statsData = await statsRes.json();
+                    transData = await transRes.json();
+                    overdueData = await overdueRes.json();
+                }
             } catch (err) {
                 console.error(err);
-                showToast("Something went wrong.", "error");
+                showToast("Something went wrong. Please try again.", "error");
                 statsData = { total_resources: 0, available: 0, borrowed: 0, total_students: 0 };
                 transData = [];
+                overdueData = [];
             }
         }
 
@@ -206,8 +234,51 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
 
+        // 2.5 Generate Overdue Report HTML
+        let overdueRowsHtml = '';
+        if (overdueData.length === 0) {
+            overdueRowsHtml = '<tr><td colspan="6" style="text-align:center; padding: 1rem;"><p style="color: var(--status-returned); font-weight: 500; margin: 0;">No overdue items</p></td></tr>';
+        } else {
+            overdueData.forEach(tx => {
+                const daysOverdue = Math.floor((new Date() - new Date(tx.due_date)) / (1000 * 60 * 60 * 24));
+                overdueRowsHtml += `
+                    <tr>
+                        <td>${tx.receiver_name}</td>
+                        <td><strong>${tx.resource_title}</strong></td>
+                        <td>${tx.issue_date}</td>
+                        <td>${tx.due_date}</td>
+                        <td>${daysOverdue}</td>
+                        <td><span class="badge badge-overdue">Overdue</span></td>
+                    </tr>
+                `;
+            });
+        }
+
+        const overdueHtml = `
+            <div style="margin-top: 2rem;">
+                <h3 style="margin-bottom: 1rem; font-family: 'Playfair Display', serif; font-weight: 600; color: var(--text-main);">Overdue Report</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Borrower</th>
+                                <th>Resource</th>
+                                <th>Issue Date</th>
+                                <th>Due Date</th>
+                                <th>Days Overdue</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${overdueRowsHtml}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+
         // 3. Render into #dashboard
-        dashboardSection.innerHTML = statsHtml + tableHtml;
+        dashboardSection.innerHTML = statsHtml + tableHtml + overdueHtml;
     }
 
     async function loadResources() {
@@ -219,10 +290,14 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             try {
                 const response = await fetch(`${API_BASE}/api/resources`);
+                if (!response.ok) {
+                    await handleFetchError(response);
+                    return;
+                }
                 data = await response.json();
             } catch (err) {
                 console.error(err);
-                showToast("Something went wrong.", "error");
+                showToast("Something went wrong. Please try again.", "error");
                 return;
             }
         }
@@ -279,14 +354,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     showToast("Borrow request submitted!");
                 } else {
                     try {
-                        await fetch(`${API_BASE}/api/transactions`, {
+                        const response = await fetch(`${API_BASE}/api/transactions`, {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ res_id, sender_id: 101, receiver_id: 102 })
                         });
+                        if (!response.ok) {
+                            await handleFetchError(response);
+                        } else {
+                            showToast("Borrow request submitted!");
+                        }
                     } catch (err) {
                         console.error(err);
-                        showToast("Something went wrong.", "error");
+                        showToast("Something went wrong. Please try again.", "error");
                     }
                 }
             });
@@ -299,14 +379,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     showToast("Added to waitlist!");
                 } else {
                     try {
-                        await fetch(`${API_BASE}/api/waitlist`, {
+                        const response = await fetch(`${API_BASE}/api/waitlist`, {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ res_id, stud_id: 102 })
                         });
+                        if (!response.ok) {
+                            await handleFetchError(response);
+                        } else {
+                            showToast("Added to waitlist!");
+                        }
                     } catch (err) {
                         console.error(err);
-                        showToast("Something went wrong.", "error");
+                        showToast("Something went wrong. Please try again.", "error");
                     }
                 }
             });
@@ -359,14 +444,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast("Resource added successfully!");
             } else {
                 try {
-                    await fetch(`${API_BASE}/api/resources`, {
+                    const response = await fetch(`${API_BASE}/api/resources`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(data)
                     });
+                    if (!response.ok) {
+                        await handleFetchError(response);
+                    } else {
+                        showToast("Resource added successfully!");
+                    }
                 } catch (err) {
                     console.error(err);
-                    showToast("Something went wrong.", "error");
+                    showToast("Something went wrong. Please try again.", "error");
                 }
             }
             
@@ -413,10 +503,14 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             try {
                 const response = await fetch(`${API_BASE}/api/transactions`);
+                if (!response.ok) {
+                    await handleFetchError(response);
+                    return;
+                }
                 data = await response.json();
             } catch (err) {
                 console.error(err);
-                showToast("Something went wrong.", "error");
+                showToast("Something went wrong. Please try again.", "error");
                 return;
             }
         }
@@ -461,14 +555,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 const tran_id = e.target.getAttribute('data-id');
                 if (USE_MOCK) {
                     showToast("Resource marked as returned!");
+                    loadTransactions();
+                    loadResources();
                 } else {
                     try {
-                        await fetch(`${API_BASE}/api/transactions/${tran_id}/return`, {
+                        const response = await fetch(`${API_BASE}/api/transactions/${tran_id}/return`, {
                             method: "PATCH"
                         });
+                        if (!response.ok) {
+                            await handleFetchError(response);
+                        } else {
+                            showToast("Resource marked as returned!");
+                            loadTransactions();
+                            loadResources();
+                        }
                     } catch (err) {
                         console.error(err);
-                        showToast("Something went wrong.", "error");
+                        showToast("Something went wrong. Please try again.", "error");
                     }
                 }
             });
@@ -492,10 +595,14 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             try {
                 const response = await fetch(`${API_BASE}/api/waitlist`);
+                if (!response.ok) {
+                    await handleFetchError(response);
+                    return;
+                }
                 data = await response.json();
             } catch (err) {
                 console.error(err);
-                showToast("Something went wrong.", "error");
+                showToast("Something went wrong. Please try again.", "error");
                 return;
             }
         }
@@ -536,14 +643,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 const waitlist_id = e.target.getAttribute('data-id');
                 if (USE_MOCK) {
                     showToast("Removed from waitlist!");
+                    loadWaitlist();
                 } else {
                     try {
-                        await fetch(`${API_BASE}/api/waitlist/${waitlist_id}`, {
+                        const response = await fetch(`${API_BASE}/api/waitlist/${waitlist_id}`, {
                             method: "DELETE"
                         });
+                        if (!response.ok) {
+                            await handleFetchError(response);
+                        } else {
+                            showToast("Removed from waitlist!");
+                            loadWaitlist();
+                        }
                     } catch (err) {
                         console.error(err);
-                        showToast("Something went wrong.", "error");
+                        showToast("Something went wrong. Please try again.", "error");
                     }
                 }
             });
