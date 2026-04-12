@@ -47,6 +47,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 loadResources();
             } else if (targetId === 'add-resource') {
                 loadAddResource();
+            } else if (targetId === 'transactions') {
+                loadTransactions();
             }
         });
     });
@@ -71,6 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
             navigateTo(hash);
             if (hash === 'resources') loadResources();
             if (hash === 'add-resource') loadAddResource();
+            if (hash === 'transactions') loadTransactions();
         } else {
             navigateTo('dashboard');
         }
@@ -219,6 +222,66 @@ document.addEventListener('DOMContentLoaded', () => {
     // Call conditionally on initial load if starting on add-resource
     if (initialHash === 'add-resource') {
         loadAddResource();
+    }
+
+    // --- Transactions Tab Logic ---
+    const transactionsTbody = document.getElementById('transactions-tbody');
+
+    function getTxStatus(tx) {
+        if (tx.return_date) return "returned";
+        if (tx.due_date && new Date(tx.due_date) < new Date()) return "overdue";
+        return "active";
+    }
+
+    function loadTransactions() {
+        if (!transactionsTbody) return;
+
+        transactionsTbody.innerHTML = ''; // clear current rows
+
+        if (MOCK_TRANSACTIONS.length === 0) {
+            transactionsTbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 2rem; color: var(--text-muted);">No transactions found.</td></tr>';
+            return;
+        }
+
+        MOCK_TRANSACTIONS.forEach(tx => {
+            const tr = document.createElement('tr');
+            
+            const status = getTxStatus(tx);
+            // active status uses the teal styling
+            const badgeClass = status === 'active' ? 'badge-available' : `badge-${status}`;
+
+            // Action column
+            let actionHtml = '';
+            if (status === 'active' || status === 'overdue') {
+                actionHtml = `<button class="btn btn-outline btn-return" data-id="${tx.tran_id}">Mark Returned</button>`;
+            }
+
+            tr.innerHTML = `
+                <td>${tx.tran_id}</td>
+                <td>${tx.resource_title}</td>
+                <td>${tx.sender_name}</td>
+                <td>${tx.receiver_name}</td>
+                <td>${tx.issue_date}</td>
+                <td>${tx.due_date}</td>
+                <td>${tx.return_date || '-'}</td>
+                <td><span class="badge ${badgeClass}">${status}</span></td>
+                <td>${actionHtml}</td>
+            `;
+            transactionsTbody.appendChild(tr);
+        });
+
+        // Attach action listeners
+        document.querySelectorAll('.btn-return').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = e.target.getAttribute('data-id');
+                console.log(`Return clicked for tran_id: ${id}`);
+            });
+        });
+    }
+
+    // Call conditionally on initial load if starting on transactions
+    if (initialHash === 'transactions') {
+        loadTransactions();
     }
 
 });
