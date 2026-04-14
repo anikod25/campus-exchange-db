@@ -1,6 +1,13 @@
 const API_BASE = "http://localhost:5000";
 const USE_MOCK = true;
 
+const ADMIN_CREDENTIALS = {
+    email: "admin@campus.com",
+    password: "admin123"
+};
+
+let currentUser = null; // { role: "admin" | "student", name: string, std_id: null | number }
+
 function showToast(message, type = "success") {
     const container = document.getElementById("toast-container");
     const toast = document.createElement("div");
@@ -862,5 +869,71 @@ document.addEventListener('DOMContentLoaded', () => {
     if (initialHash === 'students') {
         loadStudents();
     }
+
+    // --- Authentication Logic ---
+    function handleLogin() {
+        const email = document.getElementById("login-email").value.trim();
+        const password = document.getElementById("login-password").value.trim();
+        const errorEl = document.getElementById("login-error");
+
+        // Check admin first
+        if (email === ADMIN_CREDENTIALS.email && password === ADMIN_CREDENTIALS.password) {
+            currentUser = { role: "admin", name: "Admin", std_id: null };
+            startApp();
+            return;
+        }
+
+        // Check if email matches a student (password is their email for demo)
+        const student = MOCK_STUDENTS.find(s => s.mail_id === email);
+        if (student && password === email) {
+            currentUser = { role: "student", name: student.name, std_id: student.std_id };
+            startApp();
+            return;
+        }
+
+        errorEl.textContent = "Invalid email or password.";
+    }
+
+    function startApp() {
+        document.getElementById("login-screen").style.display = "none";
+        document.getElementById("app").style.display = "flex";
+
+        // Show or hide nav links based on role
+        const adminOnlyTabs = ["add-resource", "students", "waitlist"];
+        adminOnlyTabs.forEach(tabId => {
+            const link = document.querySelector(`.nav-link[data-target="${tabId}"]`);
+            if (link) {
+                link.style.display = currentUser.role === "admin" ? "block" : "none";
+            }
+        });
+
+        // Show current user name in sidebar
+        const userChip = document.getElementById("user-chip");
+        if (userChip) {
+            userChip.textContent = `${currentUser.name} (${currentUser.role})`;
+        }
+
+        navigateTo("dashboard");
+        loadDashboard();
+    }
+
+    function handleLogout() {
+        currentUser = null;
+        document.getElementById("login-screen").style.display = "flex";
+        document.getElementById("app").style.display = "none";
+        document.getElementById("login-email").value = "";
+        document.getElementById("login-password").value = "";
+        document.getElementById("login-error").textContent = "";
+    }
+
+    // Bind Auth Events
+    document.getElementById("login-btn").addEventListener("click", handleLogin);
+    document.getElementById("login-email").addEventListener("keydown", e => {
+        if (e.key === "Enter") handleLogin();
+    });
+    document.getElementById("login-password").addEventListener("keydown", e => {
+        if (e.key === "Enter") handleLogin();
+    });
+    document.getElementById("logout-btn").addEventListener("click", handleLogout);
 
 });

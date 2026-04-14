@@ -11,7 +11,18 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="app-container">
+    <div id="login-screen">
+        <div id="login-card">
+            <h1>Campus Exchange</h1>
+            <p>Sign in to continue</p>
+            <input type="email" id="login-email" placeholder="Email address" />
+            <input type="password" id="login-password" placeholder="Password" />
+            <p id="login-error"></p>
+            <button id="login-btn">Sign In</button>
+        </div>
+    </div>
+    <div id="app" style="display:none;">
+        <div class="app-container">
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <h1 class="logo">Campus Exchange</h1>
@@ -23,6 +34,10 @@
                 <a href="#waitlist" class="nav-link" data-target="waitlist">Waitlist</a>
                 <a href="#students" class="nav-link" data-target="students">Students</a>
             </nav>
+            <div id="sidebar-footer">
+                <span id="user-chip"></span>
+                <button id="logout-btn">Logout</button>
+            </div>
         </aside>
 
         <!-- Main Content Area -->
@@ -182,7 +197,9 @@
             <section id="students" class="page-section hidden">
                 <h2>Students</h2>
             </section>
+            </section>
         </main>
+    </div>
     </div>
 
     <div id="toast-container"></div>
