@@ -282,6 +282,7 @@ BEGIN
     DECLARE v_status     VARCHAR(50);
     DECLARE v_borrows    INT;
     DECLARE v_new_tran_id INT;
+    DECLARE v_donor_id   INT;
  
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
@@ -292,7 +293,7 @@ BEGIN
     START TRANSACTION;
  
     -- Validate resource exists and is available
-    SELECT curr_status INTO v_status
+    SELECT curr_status, donor_id INTO v_status, v_donor_id
     FROM   Resources
     WHERE  res_id = p_res_id
     FOR UPDATE;
@@ -307,6 +308,11 @@ BEGIN
             SET MESSAGE_TEXT = 'Resource is not available for borrowing.';
     END IF;
  
+    IF v_donor_id = p_receiver_id THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'You cannot borrow a resource you have donated.';
+    END IF;
+
     -- Validate sender ≠ receiver
     IF p_sender_id = p_receiver_id THEN
         SIGNAL SQLSTATE '45000'
@@ -378,7 +384,18 @@ BEGIN
     DECLARE v_exists      INT DEFAULT 0;
     DECLARE v_next_priority INT DEFAULT 1;
     DECLARE v_new_id       INT;
+    DECLARE v_donor_id     INT;
  
+    -- Prevent user from waitlisting their own resource
+    SELECT donor_id INTO v_donor_id
+    FROM   Resources
+    WHERE  res_id = p_res_id;
+    
+    IF v_donor_id = p_stud_id THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'You cannot join the waitlist for a resource you have donated.';
+    END IF;
+
     -- Check for existing entry
     SELECT COUNT(*) INTO v_exists
     FROM   Waitlist

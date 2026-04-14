@@ -24,8 +24,13 @@ def donate_resource(req: DonateRequest):
             req.title, req.author_model, req.category,
             req.donor_id, req.condition
         ])
+        
+        ret_val = None
         for result in cursor.stored_results():
-            return result.fetchone()
+            ret_val = result.fetchone()
+            
+        conn.commit()
+        return ret_val
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     finally:

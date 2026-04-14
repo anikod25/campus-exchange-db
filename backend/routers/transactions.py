@@ -22,11 +22,29 @@ def borrow_resource(req: BorrowRequest):
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
+        cursor.execute("SELECT donor_id FROM Resources WHERE res_id = %s", (req.res_id,))
+        res = cursor.fetchone()
+        if not res:
+            raise HTTPException(status_code=404, detail="Resource not found.")
+            
+        true_donor_id = res["donor_id"]
+        
+        # The frontend sends sender_id as the borrower making the request
+        # and receiver_id as the resource owner (donor).
+        # We must map this correctly to the DB: sender=donor, receiver=borrower.
+        true_borrower_id = req.sender_id if req.receiver_id == true_donor_id else req.receiver_id
+
+        if true_donor_id == true_borrower_id:
+            raise HTTPException(status_code=400, detail="You cannot borrow a resource you have donated.")
+
         cursor.callproc("sp_borrow_resource", [
-            req.res_id, req.sender_id, req.receiver_id, str(req.due_date)
+            req.res_id, true_donor_id, true_borrower_id, str(req.due_date)
         ])
+        ret_val = None
         for result in cursor.stored_results():
-            return result.fetchone()
+            ret_val = result.fetchone()
+        conn.commit()
+        return ret_val
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     finally:
@@ -40,8 +58,11 @@ def return_resource(tran_id: int):
     cursor = conn.cursor(dictionary=True)
     try:
         cursor.callproc("sp_return_resource", [tran_id])
+        ret_val = None
         for result in cursor.stored_results():
-            return result.fetchone()
+            ret_val = result.fetchone()
+        conn.commit()
+        return ret_val
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     finally:
@@ -54,9 +75,19 @@ def join_waitlist(req: WaitlistRequest):
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
+        cursor.execute("SELECT donor_id FROM Resources WHERE res_id = %s", (req.res_id,))
+        res = cursor.fetchone()
+        if not res:
+            raise HTTPException(status_code=404, detail="Resource not found.")
+        if res["donor_id"] == req.stud_id:
+            raise HTTPException(status_code=400, detail="You cannot join the waitlist for a resource you have donated.")
+
         cursor.callproc("sp_join_waitlist", [req.res_id, req.stud_id])
+        ret_val = None
         for result in cursor.stored_results():
-            return result.fetchone()
+            ret_val = result.fetchone()
+        conn.commit()
+        return ret_val
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     finally:
