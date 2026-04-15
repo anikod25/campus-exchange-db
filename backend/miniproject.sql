@@ -10,6 +10,7 @@ CREATE TABLE Students (
     std_id        INT           PRIMARY KEY,
     name          VARCHAR(100)  NOT NULL,
     mail_id       VARCHAR(150)  NOT NULL UNIQUE,
+    password_hash VARCHAR(255),
     year_of_study INT           NOT NULL CHECK (year_of_study BETWEEN 1 AND 4),
     dept_id       INT           NOT NULL,
     CONSTRAINT fk_student_dept
@@ -53,6 +54,7 @@ CREATE TABLE Transactions (
     issue_date  DATE NOT NULL DEFAULT (CURRENT_DATE),
     due_date    DATE,
     return_date DATE,
+    validated   TINYINT(1) NOT NULL DEFAULT 0,
     CONSTRAINT fk_tran_resource
         FOREIGN KEY (res_id)       REFERENCES Resources(res_id)
         ON DELETE RESTRICT ON UPDATE CASCADE,
@@ -67,6 +69,9 @@ CREATE TABLE Transactions (
     CONSTRAINT chk_return_after_issue
         CHECK (return_date IS NULL OR return_date >= issue_date)
 );
+
+-- Ensure validated column exists for existing databases
+ALTER TABLE Transactions ADD COLUMN IF NOT EXISTS validated TINYINT(1) NOT NULL DEFAULT 0;
  
 INSERT INTO Departments (dept_id, dept_name) VALUES
     (1, 'Computer Science & Engineering'),
@@ -329,7 +334,7 @@ BEGIN
     -- Generate next tran_id
     SELECT IFNULL(MAX(tran_id), 400) + 1 INTO v_new_tran_id FROM Transactions;
  
-    -- Insert transaction (trg_auto_status will set status = 'borrowed')
+    -- Insert transaction (validated defaults to 0)
     INSERT INTO Transactions (tran_id, res_id, sender_id, receiver_id, issue_date, due_date)
     VALUES (v_new_tran_id, p_res_id, p_sender_id, p_receiver_id, CURRENT_DATE, p_due_date);
  
@@ -459,9 +464,6 @@ BEGIN
 END$$
  
 DELIMITER ;
- 
 
--- adding a new column for a password for students: 
-ALTER TABLE Students ADD COLUMN password_hash VARCHAR(255) NOT NULL;
 
 

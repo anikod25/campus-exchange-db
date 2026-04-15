@@ -155,18 +155,30 @@ document.addEventListener('DOMContentLoaded', () => {
             overdueData = MOCK_TRANSACTIONS.filter(tx => !tx.return_date && new Date(tx.due_date) < new Date());
         } else {
             try {
-                const [statsRes, transRes, overdueRes] = await Promise.all([
-                    fetch(`${API_BASE}/dashboard/stats`),
-                    fetch(`${API_BASE}/transactions/`),
-                    fetch(`${API_BASE}/transactions/overdue`)
-                ]);
-                if (!statsRes.ok || !transRes.ok || !overdueRes.ok) {
+                const isAdmin = currentUser && currentUser.role === "admin";
+                const userId = currentUser ? currentUser.std_id : null;
+                
+                const statsRes = fetch(`${API_BASE}/dashboard/stats`);
+                
+                // Build transactions URL with user filtering
+                const transUrl = new URL(`${API_BASE}/transactions/`);
+                if (userId) {
+                    transUrl.searchParams.append('user_id', userId);
+                    transUrl.searchParams.append('is_admin', isAdmin);
+                }
+                const transRes = fetch(transUrl.toString());
+                
+                const overdueRes = fetch(`${API_BASE}/transactions/overdue`);
+                
+                const [statsResolved, transResolved, overdueResolved] = await Promise.all([statsRes, transRes, overdueRes]);
+                
+                if (!statsResolved.ok || !transResolved.ok || !overdueResolved.ok) {
                     showToast("Something went wrong. Please try again.", "error");
                     statsData = { total_resources: 0, available: 0, borrowed: 0, total_students: 0 };
                 } else {
-                    statsData = await statsRes.json();
-                    transData = await transRes.json();
-                    overdueData = await overdueRes.json();
+                    statsData = await statsResolved.json();
+                    transData = await transResolved.json();
+                    overdueData = await overdueResolved.json();
                 }
             } catch (err) {
                 console.error(err);
@@ -359,20 +371,43 @@ document.addEventListener('DOMContentLoaded', () => {
         // 4. Attach temporary action listeners
         document.querySelectorAll('.btn-borrow').forEach(btn => {
             btn.addEventListener('click', async (e) => {
-                const res_id = e.target.getAttribute('data-id');
+                const res_id = parseInt(e.target.getAttribute('data-id'));
+                
+                if (!currentUser) {
+                    showToast("Please log in first.", "error");
+                    return;
+                }
+                
                 if (USE_MOCK) {
                     showToast("Borrow request submitted!");
                 } else {
                     try {
+                        // Fetch the resource to get donor_id
+                        const resourceRes = await fetch(`${API_BASE}/resources/${res_id}`);
+                        if (!resourceRes.ok) {
+                            showToast("Resource not found.", "error");
+                            return;
+                        }
+                        const resource = await resourceRes.json();
+                        
                         const response = await fetch(`${API_BASE}/transactions/borrow`, {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ res_id: parseInt(res_id), sender_id: 101, receiver_id: 102, due_date: new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0] })
+                            body: JSON.stringify({ 
+                                res_id: res_id, 
+                                sender_id: currentUser.std_id,  // Borrower making the request
+                                receiver_id: resource.donor_id,  // Donor/lender of the resource
+                                due_date: new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0] 
+                            })
                         });
                         if (!response.ok) {
                             await handleFetchError(response);
                         } else {
                             showToast("Borrow request submitted!");
+                            // Reload all relevant views
+                            loadResources();
+                            loadDashboard();
+                            if (transactionsTbody) loadTransactions();
                         }
                     } catch (err) {
                         console.error(err);
@@ -385,6 +420,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.btn-waitlist').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const res_id = e.target.getAttribute('data-id');
+                
+                if (!currentUser) {
+                    showToast("Please log in first.", "error");
+                    return;
+                }
+                
                 if (USE_MOCK) {
                     showToast("Added to waitlist!");
                 } else {
@@ -392,12 +433,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         const response = await fetch(`${API_BASE}/transactions/waitlist`, {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ res_id: parseInt(res_id), stud_id: 101 })
+                            body: JSON.stringify({ res_id: parseInt(res_id), stud_id: currentUser.std_id })
                         });
                         if (!response.ok) {
                             await handleFetchError(response);
                         } else {
                             showToast("Added to waitlist!");
+                            loadResources();
                         }
                     } catch (err) {
                         console.error(err);
@@ -497,13 +539,29 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!resDonor) return;
         resDonor.innerHTML = '<option value="">Select Donor</option>';
         
-        const students = USE_MOCK ? MOCK_STUDENTS : await fetch(`${API_BASE}/students/`).then(r => r.json());
-        students.forEach(student => {
-            const opt = document.createElement('option');
-            opt.value = student.std_id;
-            opt.textContent = student.name;
-            resDonor.appendChild(opt);
-        });
+        try {
+            const students = USE_MOCK ? MOCK_STUDENTS : await fetch(`${API_BASE}/students/`).then(r => r.json());
+            
+            // Remove duplicates based on std_id
+            const uniqueStudents = [];
+            const seenIds = new Set();
+            students.forEach(student => {
+                if (!seenIds.has(student.std_id)) {
+                    seenIds.add(student.std_id);
+                    uniqueStudents.push(student);
+                }
+            });
+            
+            uniqueStudents.forEach(student => {
+                const opt = document.createElement('option');
+                opt.value = student.std_id;
+                opt.textContent = student.name;
+                resDonor.appendChild(opt);
+            });
+        } catch (err) {
+            console.error(err);
+            showToast("Error loading donors.", "error");
+        }
     }
 
     // Call conditionally on initial load if starting on add-resource
@@ -528,14 +586,29 @@ document.addEventListener('DOMContentLoaded', () => {
             data = MOCK_TRANSACTIONS;
         } else {
             try {
-                const response = await fetch(`${API_BASE}/transactions/`);
+                const isAdmin = currentUser && currentUser.role === "admin";
+                const userId = currentUser ? currentUser.std_id : null;
+                
+                console.log(`Loading transactions - User: ${userId}, Role: ${currentUser ? currentUser.role : 'none'}, Admin: ${isAdmin}`);
+                
+                const url = new URL(`${API_BASE}/transactions/`);
+                if (userId) {
+                    url.searchParams.append('user_id', userId);
+                    url.searchParams.append('is_admin', isAdmin);
+                }
+                
+                console.log(`Fetching from: ${url.toString()}`);
+                
+                const response = await fetch(url.toString());
                 if (!response.ok) {
+                    console.error(`Failed to fetch transactions: ${response.status}`);
                     await handleFetchError(response);
                     return;
                 }
                 data = await response.json();
+                console.log(`Received ${data.length} transactions`);
             } catch (err) {
-                console.error(err);
+                console.error("Error loading transactions:", err);
                 showToast("Something went wrong. Please try again.", "error");
                 return;
             }
@@ -555,10 +628,25 @@ document.addEventListener('DOMContentLoaded', () => {
             // active status uses the teal styling
             const badgeClass = status === 'active' ? 'badge-available' : `badge-${status}`;
 
-            // Action column
+            // Action column: only show if user is involved in the transaction
             let actionHtml = '';
-            if (status === 'active' || status === 'overdue') {
-                actionHtml = `<button class="btn btn-outline btn-return" data-id="${tx.tran_id}">Mark Returned</button>`;
+            if ((status === 'active' || status === 'overdue') && currentUser) {
+                const isCurrentUserBorrower = tx.sender_id === currentUser.std_id;
+                const isCurrentUserDonor = tx.receiver_id === currentUser.std_id;
+                
+                // Borrower can return
+                if (isCurrentUserBorrower) {
+                    actionHtml = `<button class="btn btn-outline btn-return" data-id="${tx.tran_id}">Mark Returned</button>`;
+                }
+                // Donor can validate borrowing (acknowledge receipt)
+                else if (isCurrentUserDonor && status === 'active') {
+                    const isValidated = tx.validated === 1 || tx.validated === true;
+                    if (!isValidated) {
+                        actionHtml = `<button class="btn btn-outline btn-validate" data-id="${tx.tran_id}" style="color: #27ae60;">Confirm Borrowed</button>`;
+                    } else {
+                        actionHtml = `<span style="color: #27ae60; font-weight: 500;">✓ Confirmed</span>`;
+                    }
+                }
             }
 
             tr.innerHTML = `
@@ -594,6 +682,32 @@ document.addEventListener('DOMContentLoaded', () => {
                             showToast("Resource marked as returned!");
                             loadTransactions();
                             loadResources();
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        showToast("Something went wrong. Please try again.", "error");
+                    }
+                }
+            });
+        });
+        
+        // Attach listeners for donor validation buttons
+        document.querySelectorAll('.btn-validate').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const tran_id = e.target.getAttribute('data-id');
+                if (USE_MOCK) {
+                    showToast("Borrowing confirmed!");
+                    loadTransactions();
+                } else {
+                    try {
+                        const response = await fetch(`${API_BASE}/transactions/validate/${tran_id}`, {
+                            method: "POST"
+                        });
+                        if (!response.ok) {
+                            await handleFetchError(response);
+                        } else {
+                            showToast("Borrowing confirmed!");
+                            loadTransactions();
                         }
                     } catch (err) {
                         console.error(err);

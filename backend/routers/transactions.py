@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import date
 from database import get_connection
+import sys
 
 router = APIRouter()
 
@@ -22,6 +23,7 @@ def borrow_resource(req: BorrowRequest):
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
+        # Get the actual donor from database
         cursor.execute("SELECT donor_id FROM Resources WHERE res_id = %s", (req.res_id,))
         res = cursor.fetchone()
         if not res:
@@ -30,22 +32,35 @@ def borrow_resource(req: BorrowRequest):
         true_donor_id = res["donor_id"]
         
         # The frontend sends sender_id as the borrower making the request
-        # and receiver_id as the resource owner (donor).
-        # We must map this correctly to the DB: sender=donor, receiver=borrower.
-        true_borrower_id = req.sender_id if req.receiver_id == true_donor_id else req.receiver_id
+        borrower_id = req.sender_id  # The person making the borrow request
+        donor_id = true_donor_id     # The actual resource owner
 
-        if true_donor_id == true_borrower_id:
+        if donor_id == borrower_id:
             raise HTTPException(status_code=400, detail="You cannot borrow a resource you have donated.")
 
-        cursor.callproc("sp_borrow_resource", [
-            req.res_id, true_donor_id, true_borrower_id, str(req.due_date)
-        ])
+        # Convert date to string for MySQL
+        due_date_str = str(req.due_date)
+        
+        print(f"[BORROW] Calling sp_borrow_resource({req.res_id}, {donor_id}, {borrower_id}, {due_date_str})", file=sys.stderr)
+        
+        # Call stored procedure
+        cursor.callproc("sp_borrow_resource", [req.res_id, donor_id, borrower_id, due_date_str])
+        
         ret_val = None
         for result in cursor.stored_results():
             ret_val = result.fetchone()
+        
+        if ret_val is None:
+            raise HTTPException(status_code=400, detail="Stored procedure did not return a result")
+        
+        print(f"[BORROW] Success: {ret_val}", file=sys.stderr)
         conn.commit()
         return ret_val
+    except HTTPException:
+        raise
     except Exception as e:
+        print(f"[BORROW] ERROR: {str(e)}", file=sys.stderr)
+        conn.rollback()
         raise HTTPException(status_code=400, detail=str(e))
     finally:
         cursor.close()
@@ -63,6 +78,22 @@ def return_resource(tran_id: int):
             ret_val = result.fetchone()
         conn.commit()
         return ret_val
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@router.post("/validate/{tran_id}")
+def validate_borrowing(tran_id: int):
+    """Mark a borrowing as validated/confirmed by the donor"""
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("UPDATE Transactions SET validated = 1 WHERE tran_id = %s", (tran_id,))
+        conn.commit()
+        return {"message": "Borrowing validated successfully.", "tran_id": tran_id}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     finally:
@@ -98,19 +129,33 @@ def join_waitlist(req: WaitlistRequest):
 
 # GET all transactions (for transactions tab)
 @router.get("/")
-def list_transactions():
+def list_transactions(user_id: Optional[int] = None, is_admin: Optional[bool] = False):
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        cursor.execute("""
-            SELECT t.*, r.title AS resource_title,
-                   s.name AS sender_name, rc.name AS receiver_name
-            FROM Transactions t
-            JOIN Resources r ON r.res_id = t.res_id
-            JOIN Students s  ON s.std_id = t.sender_id
-            JOIN Students rc ON rc.std_id = t.receiver_id
-            ORDER BY t.issue_date DESC
-        """)
+        if user_id and not is_admin:
+            # Non-admin: only their own transactions
+            cursor.execute("""
+                SELECT t.*, r.title AS resource_title,
+                       s.name AS sender_name, rc.name AS receiver_name
+                FROM Transactions t
+                JOIN Resources r ON r.res_id = t.res_id
+                JOIN Students s  ON s.std_id = t.sender_id
+                JOIN Students rc ON rc.std_id = t.receiver_id
+                WHERE t.sender_id = %s OR t.receiver_id = %s
+                ORDER BY t.issue_date DESC
+            """, (user_id, user_id))
+        else:
+            # Admin: all transactions
+            cursor.execute("""
+                SELECT t.*, r.title AS resource_title,
+                       s.name AS sender_name, rc.name AS receiver_name
+                FROM Transactions t
+                JOIN Resources r ON r.res_id = t.res_id
+                JOIN Students s  ON s.std_id = t.sender_id
+                JOIN Students rc ON rc.std_id = t.receiver_id
+                ORDER BY t.issue_date DESC
+            """)
         return cursor.fetchall()
     finally:
         cursor.close()
