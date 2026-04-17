@@ -1,0 +1,347 @@
+:root {
+    --primary: #0F6E56;
+    --primary-light: #E1F5EE;
+    --bg-page: #F9F7F2;
+    --bg-card: #FFFFFF;
+    --border: rgba(0,0,0,0.10);
+    --text-main: #1A1A18;
+    --text-muted: #6B6B65;
+
+    --status-available: #0F6E56;   --status-available-bg: #E1F5EE;
+    --status-borrowed: #BA7517;    --status-borrowed-bg: #FAEEDA;
+    --status-waitlisted: #993C1D;  --status-waitlisted-bg: #FAECE7;
+    --status-overdue: #A32D2D;     --status-overdue-bg: #FCEBEB;
+    --status-returned: #3B6D11;    --status-returned-bg: #EAF3DE;
+
+    --cond-good: #3B6D11;  --cond-good-bg: #EAF3DE;
+    --cond-fair: #BA7517;  --cond-fair-bg: #FAEEDA;
+    --cond-poor: #A32D2D;  --cond-poor-bg: #FCEBEB;
+
+    --sidebar-width: 220px;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: "DM Sans", sans-serif;
+    background-color: var(--bg-page);
+    color: var(--text-main);
+    line-height: 1.5;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: "Playfair Display", serif;
+    font-weight: 600;
+}
+
+/* Page Layout */
+.app-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+    width: var(--sidebar-width);
+    background-color: var(--bg-card);
+    border-right: 1px solid var(--border);
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.logo {
+    font-size: 1.5rem;
+    padding: 2rem 1.5rem;
+    color: var(--primary);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 1rem;
+    font-weight: bold;
+}
+
+.nav-menu {
+    display: flex;
+    flex-direction: column;
+    padding: 0 1rem;
+    gap: 0.5rem;
+}
+
+.nav-link {
+    display: block;
+    text-decoration: none;
+    color: var(--text-muted);
+    padding: 0.875rem 1rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.nav-link:hover {
+    background-color: var(--primary-light);
+}
+
+.nav-link.active {
+    background-color: var(--primary-light);
+    color: var(--primary);
+}
+
+/* Main Content Area */
+.main-content {
+    margin-left: var(--sidebar-width);
+    padding: 2rem;
+    flex: 1;
+}
+
+/* Base Card Class */
+.card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+/* Stat Cards */
+.stat-card-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.5rem;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--text-main);
+}
+
+/* Tables */
+.table-container {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+th, td {
+    padding: 10px;
+}
+
+th {
+    background-color: var(--bg-page);
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 0.875rem;
+    border-bottom: 1px solid var(--border);
+}
+
+td {
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+    color: var(--text-main);
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+/* Badges */
+.badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.badge-available { background-color: var(--status-available-bg); color: var(--status-available); }
+.badge-borrowed { background-color: var(--status-borrowed-bg); color: var(--status-borrowed); }
+.badge-waitlisted { background-color: var(--status-waitlisted-bg); color: var(--status-waitlisted); }
+.badge-overdue { background-color: var(--status-overdue-bg); color: var(--status-overdue); }
+.badge-returned { background-color: var(--status-returned-bg); color: var(--status-returned); }
+
+.badge-good { background-color: var(--cond-good-bg); color: var(--cond-good); }
+.badge-fair { background-color: var(--cond-fair-bg); color: var(--cond-fair); }
+.badge-poor { background-color: var(--cond-poor-bg); color: var(--cond-poor); }
+
+/* Buttons */
+.btn {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    border: none;
+    font-family: inherit;
+}
+
+.btn-primary {
+    background-color: var(--primary);
+    color: #ffffff;
+}
+
+.btn-primary:hover {
+    opacity: 0.9;
+}
+
+.btn-outline {
+    background-color: transparent;
+    color: var(--text-main);
+    border: 1px solid var(--border);
+}
+
+.btn-outline:hover {
+    background-color: var(--bg-page);
+}
+
+/* Utilities */
+.page-section {
+    display: block;
+}
+
+.page-section > h2 {
+    font-size: 1.75rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-main);
+}
+
+.page-section.hidden {
+    display: none;
+}
+
+#toast-container {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 9999;
+}
+.toast {
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    min-width: 220px;
+    animation: fadein 0.3s ease;
+}
+.toast-success { background: var(--status-available-bg); color: var(--status-available); }
+.toast-error   { background: var(--status-overdue-bg);   color: var(--status-overdue);   }
+.toast-info    { background: var(--primary-light);        color: var(--primary);          }
+@keyframes fadein { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Login Screen */
+#login-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg-page);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+#login-card, #register-card {
+    background: var(--bg-card);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+#login-card input, #register-card input, #register-card select {
+    padding: 0.75rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    font-family: inherit;
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 0.875rem;
+}
+#login-card h1, #register-card h1 {
+    color: var(--primary);
+    margin: 0;
+    font-size: 1.5rem;
+}
+#login-card p, #register-card p {
+    color: var(--text-muted);
+    margin: 0;
+    font-size: 14px;
+}
+#login-error, #reg-error {
+    color: var(--status-overdue);
+    font-size: 13px;
+    min-height: 16px;
+}
+#login-btn, #reg-btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.75rem;
+    border-radius: 6px;
+    font-size: 15px;
+    cursor: pointer;
+    margin-top: 4px;
+}
+#login-btn:hover, #reg-btn:hover { opacity: 0.9; }
+
+/* Sidebar Footer */
+#sidebar-footer {
+    position: absolute;
+    bottom: 1.5rem;
+    left: 0;
+    width: 100%;
+    padding: 0 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+#user-chip {
+    font-size: 13px;
+    color: var(--text-muted);
+    word-break: break-all;
+}
+#logout-btn {
+    background: none;
+    border: 0.5px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    color: var(--status-overdue);
+    font-size: 13px;
+    text-align: left;
+}
+#logout-btn:hover { background: var(--status-overdue-bg); }

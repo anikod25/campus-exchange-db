@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Exchange</title>
+    <!-- Add Google Fonts: Playfair Display for headings & DM Sans for body -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="login-screen">
+        <div id="login-card">
+            <h1>Campus Exchange</h1>
+            <p>Sign in to continue</p>
+            <input type="email" id="login-email" placeholder="Email address" />
+            <input type="password" id="login-password" placeholder="Password" />
+            <p id="login-error"></p>
+            <button id="login-btn">Sign In</button>
+            <p style="text-align: center; margin-top: 1rem; font-size: 0.875rem;">
+                Don't have an account? <a href="#" id="show-register-btn" style="color: var(--primary); text-decoration: none; font-weight: 500;">Sign up</a>
+            </p>
+        </div>
+        <div id="register-card" style="display: none;">
+            <h1>Create Account</h1>
+            <p style="margin-bottom: 0.5rem">Join Campus Exchange</p>
+            <input type="number" id="reg-id" placeholder="Student ID *" />
+            <input type="text" id="reg-name" placeholder="Full Name *" />
+            <input type="email" id="reg-email" placeholder="Email Address *" />
+            <input type="password" id="reg-password" placeholder="Password *" />
+            <select id="reg-year">
+                <option value="">Year *</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+            </select>
+            <select id="reg-dept">
+                <option value="">Department *</option>
+            </select>
+            <p id="reg-error"></p>
+            <button id="reg-btn">Sign Up</button>
+            <p style="text-align: center; margin-top: 1rem; font-size: 0.875rem;">
+                Already have an account? <a href="#" id="show-login-btn" style="color: var(--primary); text-decoration: none; font-weight: 500;">Sign in</a>
+            </p>
+        </div>
+    </div>
+    <div id="app" style="display:none;">
+        <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <h1 class="logo">Campus Exchange</h1>
+            <nav class="nav-menu">
+                <a href="#dashboard" class="nav-link active" data-target="dashboard">Dashboard</a>
+                <a href="#resources" class="nav-link" data-target="resources">Resources</a>
+                <a href="#add-resource" class="nav-link" data-target="add-resource">Add Resource</a>
+                <a href="#transactions" class="nav-link" data-target="transactions">Transactions</a>
+                <a href="#waitlist" class="nav-link" data-target="waitlist">Waitlist</a>
+                <a href="#students" class="nav-link" data-target="students">Students</a>
+            </nav>
+            <div id="sidebar-footer">
+                <span id="user-chip"></span>
+                <button id="logout-btn">Logout</button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <section id="dashboard" class="page-section">
+                <h2>Dashboard</h2>
+            </section>
+            
+            <section id="resources" class="page-section hidden">
+                <h2>Resources</h2>
+                
+                <div class="card" style="display: flex; gap: 1.5rem; align-items: center; padding: 1rem 1.5rem;">
+                    <div>
+                        <label for="filter-category" class="stat-label">Category</label>
+                        <select id="filter-category" style="padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border); font-family: inherit;">
+                            <option value="All">All</option>
+                            <option value="Textbook">Textbook</option>
+                            <option value="Hardware">Hardware</option>
+                            <option value="Equipment">Equipment</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="filter-status" class="stat-label">Status</label>
+                        <select id="filter-status" style="padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border); font-family: inherit;">
+                            <option value="All">All</option>
+                            <option value="available">Available</option>
+                            <option value="borrowed">Borrowed</option>
+                            <option value="waitlisted">Waitlisted</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="filter-condition" class="stat-label">Condition</label>
+                        <select id="filter-condition" style="padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border); font-family: inherit;">
+                            <option value="All">All</option>
+                            <option value="good">Good</option>
+                            <option value="fair">Fair</option>
+                            <option value="poor">Poor</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Author/Model</th>
+                                <th>Category</th>
+                                <th>Condition</th>
+                                <th>Status</th>
+                                <th>Donor</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resources-tbody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            
+            <section id="add-resource" class="page-section hidden">
+                <h2>Add Resource</h2>
+                <div class="card" style="max-width: 600px;">
+                    <form id="add-resource-form" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <label for="res-title" class="stat-label">Title *</label>
+                            <input type="text" id="res-title" required style="padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border); font-family: inherit;">
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <label for="res-author" class="stat-label">Author / Model</label>
+                            <input type="text" id="res-author" style="padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border); font-family: inherit;">
+                        </div>
+
+                        <div style="display: flex; gap: 1rem;">
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem; flex: 1;">
+                                <label for="res-category" class="stat-label">Category *</label>
+                                <select id="res-category" required style="padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border); font-family: inherit;">
+                                    <option value="">Select Category</option>
+                                    <option value="Textbook">Textbook</option>
+                                    <option value="Hardware">Hardware</option>
+                                    <option value="Equipment">Equipment</option>
+                                </select>
+                            </div>
+
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem; flex: 1;">
+                                <label for="res-condition" class="stat-label">Condition *</label>
+                                <select id="res-condition" required style="padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border); font-family: inherit;">
+                                    <option value="">Select Condition</option>
+                                    <option value="good">Good</option>
+                                    <option value="fair">Fair</option>
+                                    <option value="poor">Poor</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <label for="res-donor" class="stat-label">Donor *</label>
+                            <select id="res-donor" required style="padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border); font-family: inherit;">
+                                <option value="">Select Donor</option>
+                                <!-- Populated by JS -->
+                            </select>
+                        </div>
+
+                        <div style="margin-top: 1rem;">
+                            <button type="submit" id="res-submit-btn" class="btn btn-primary" disabled style="width: 100%; padding: 0.875rem; font-size: 1rem;">Add Resource</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+            
+            <section id="transactions" class="page-section hidden">
+                <h2>Transactions</h2>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Resource</th>
+                                <th>Sender</th>
+                                <th>Receiver</th>
+                                <th>Issue Date</th>
+                                <th>Due Date</th>
+                                <th>Return Date</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactions-tbody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            
+            <section id="waitlist" class="page-section hidden">
+                <h2>Waitlist</h2>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Priority</th>
+                                <th>Resource</th>
+                                <th>Student</th>
+                                <th>Registration Date</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="waitlist-tbody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            
+            <section id="students" class="page-section hidden">
+                <h2>Students</h2>
+            </section>
+            </section>
+        </main>
+    </div>
+    </div>
+
+    <div id="toast-container"></div>
+    <script src="mock-data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
